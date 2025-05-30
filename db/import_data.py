@@ -15,6 +15,72 @@ DB_PARAMS = {
 def connect_db():
     return psycopg2.connect(**DB_PARAMS)
 
+def create_schema(conn):
+    cur = conn.cursor()
+    
+    # Create PostGIS extension if it doesn't exist
+    cur.execute("CREATE EXTENSION IF NOT EXISTS postgis;")
+    
+    # Create tables for our data
+    cur.execute("""
+        -- Transport stops (Haltestellen)
+        CREATE TABLE IF NOT EXISTS transport_stops (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255),
+            coordinates GEOMETRY(Point, 4326),
+            properties JSONB
+        );
+
+        -- Parks and green areas
+        CREATE TABLE IF NOT EXISTS parks (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255),
+            coordinates GEOMETRY(Point, 4326),
+            polygon_coordinates GEOMETRY(Polygon, 4326),
+            properties JSONB
+        );
+
+        -- Hospitals
+        CREATE TABLE IF NOT EXISTS hospitals (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255),
+            coordinates GEOMETRY(Point, 4326),
+            properties JSONB
+        );
+
+        -- Crime statistics by district
+        CREATE TABLE IF NOT EXISTS crime_stats (
+            id SERIAL PRIMARY KEY,
+            district VARCHAR(255) UNIQUE,
+            crimes INTEGER,
+            year INTEGER
+        );
+
+        -- Schools
+        CREATE TABLE IF NOT EXISTS schools (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255),
+            coordinates GEOMETRY(Point, 4326),
+            properties JSONB
+        );
+
+        -- Rent prices by district
+        CREATE TABLE IF NOT EXISTS rent_prices (
+            id SERIAL PRIMARY KEY,
+            district VARCHAR(255) UNIQUE,
+            price_per_sqm DECIMAL(10,2)
+        );
+
+        -- Create indexes for better query performance
+        CREATE INDEX IF NOT EXISTS idx_transport_stops_coordinates ON transport_stops USING GIST (coordinates);
+        CREATE INDEX IF NOT EXISTS idx_parks_coordinates ON parks USING GIST (coordinates);
+        CREATE INDEX IF NOT EXISTS idx_hospitals_coordinates ON hospitals USING GIST (coordinates);
+        CREATE INDEX IF NOT EXISTS idx_schools_coordinates ON schools USING GIST (coordinates);
+    """)
+    
+    conn.commit()
+    print("Database schema created successfully!")
+
 def import_transport_stops(conn, json_file):
     with open(json_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -24,7 +90,7 @@ def import_transport_stops(conn, json_file):
         coords = feature['geometry']['coordinates']
         cur.execute("""
             INSERT INTO transport_stops (name, coordinates, properties)
-            VALUES (%s, POINT(%s, %s), %s)
+            VALUES (%s, ST_SetSRID(ST_MakePoint(%s, %s), 4326), %s)
         """, (
             feature['properties'].get('name', ''),
             coords[0],  # longitude
@@ -44,7 +110,7 @@ def import_parks(conn, json_file):
             coords = geom['coordinates']
             cur.execute("""
                 INSERT INTO parks (name, coordinates, properties)
-                VALUES (%s, POINT(%s, %s), %s)
+                VALUES (%s, ST_SetSRID(ST_MakePoint(%s, %s), 4326), %s)
             """, (
                 feature['properties'].get('ANL_NAME', ''),
                 coords[0],
@@ -54,14 +120,18 @@ def import_parks(conn, json_file):
         elif geom['type'] in ['Polygon', 'MultiPolygon']:
             # For polygons, we'll store the first point as coordinates
             coords = geom['coordinates'][0][0] if geom['type'] == 'Polygon' else geom['coordinates'][0][0][0]
+            # Create polygon geometry
+            polygon_coords = geom['coordinates'][0] if geom['type'] == 'Polygon' else geom['coordinates'][0][0]
+            polygon_str = ','.join([f"{coord[0]} {coord[1]}" for coord in polygon_coords])
             cur.execute("""
                 INSERT INTO parks (name, coordinates, polygon_coordinates, properties)
-                VALUES (%s, POINT(%s, %s), %s, %s)
+                VALUES (%s, ST_SetSRID(ST_MakePoint(%s, %s), 4326), 
+                        ST_SetSRID(ST_GeomFromText('POLYGON((%s))'), 4326), %s)
             """, (
                 feature['properties'].get('ANL_NAME', ''),
                 coords[0],
                 coords[1],
-                Json(geom['coordinates']),
+                polygon_str,
                 Json(feature['properties'])
             ))
     conn.commit()
@@ -75,7 +145,7 @@ def import_hospitals(conn, json_file):
         coords = feature['geometry']['coordinates']
         cur.execute("""
             INSERT INTO hospitals (name, coordinates, properties)
-            VALUES (%s, POINT(%s, %s), %s)
+            VALUES (%s, ST_SetSRID(ST_MakePoint(%s, %s), 4326), %s)
         """, (
             feature['properties'].get('name', ''),
             coords[0],
@@ -109,7 +179,7 @@ def import_schools(conn, json_file):
         coords = feature['geometry']['coordinates']
         cur.execute("""
             INSERT INTO schools (name, coordinates, properties)
-            VALUES (%s, POINT(%s, %s), %s)
+            VALUES (%s, ST_SetSRID(ST_MakePoint(%s, %s), 4326), %s)
         """, (
             feature['properties'].get('name', ''),
             coords[0],
@@ -133,13 +203,19 @@ def import_rent_prices(conn, json_file):
 def main():
     conn = connect_db()
     try:
-        # Import all data
-        import_transport_stops(conn, '../Haltestelle.json')
-        import_parks(conn, '../parks.json')
-        import_hospitals(conn, '../Krankenhaus.json')
-        import_crime_stats(conn, '../crimeStats2024.json')
-        import_schools(conn, '../Schulen.json')
-        import_rent_prices(conn, '../rentPrices.json')
+        # Create database schema first
+        create_schema(conn)
+        
+        # Get the absolute path to the LifeQual directory
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'LifeQual'))
+        
+        # Import all data with correct paths
+        import_transport_stops(conn, os.path.join(base_dir, 'Haltestelle.json'))
+        import_parks(conn, os.path.join(base_dir, 'parks.json'))
+        import_hospitals(conn, os.path.join(base_dir, 'Krankenhaus.json'))
+        import_crime_stats(conn, os.path.join(base_dir, 'crimeStats2024.json'))
+        import_schools(conn, os.path.join(base_dir, 'Schulen.json'))
+        import_rent_prices(conn, os.path.join(base_dir, 'rentPrices.json'))
         print("All data imported successfully!")
     except Exception as e:
         print(f"Error importing data: {e}")

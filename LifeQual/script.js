@@ -55,28 +55,33 @@ async function getGreenAreaScore(latLng) {
         const parks = await response.json();
         
         let closestDistance = Infinity;
-        let closestParkName = "Unbekannt";
+        let closestParkName = "Kein Park in der Nähe gefunden";
 
-        parks.forEach(park => {
-            const [lon, lat] = park.coordinates.split(',').map(Number);
-            const parkLatLng = new google.maps.LatLng(lat, lon);
-            const dist = google.maps.geometry.spherical.computeDistanceBetween(latLng, parkLatLng);
-            if (dist < closestDistance) {
-                closestDistance = dist;
-                closestParkName = park.name || "Unbekannt";
-            }
-        });
+        if (parks && parks.length > 0) {
+            parks.forEach(park => {
+                const [lon, lat] = park.coordinates.split(',').map(Number);
+                const parkLatLng = new google.maps.LatLng(lat, lon);
+                const dist = google.maps.geometry.spherical.computeDistanceBetween(latLng, parkLatLng);
+                if (dist < closestDistance) {
+                    closestDistance = dist;
+                    closestParkName = park.name || "Unbenannter Park";
+                }
+            });
+        }
 
-        window.closestParkName = closestParkName;
-
-        if (closestDistance < 100) return 100;
-        if (closestDistance < 300) return 80;
-        if (closestDistance < 500) return 60;
-        if (closestDistance < 1000) return 40;
-        return 20;
+        return {
+            score: closestDistance < 100 ? 100 :
+                   closestDistance < 300 ? 80 :
+                   closestDistance < 500 ? 60 :
+                   closestDistance < 1000 ? 40 : 20,
+            closestParkName: closestParkName
+        };
     } catch (error) {
         console.error("Failed to calculate park score:", error);
-        return 50;
+        return {
+            score: 50,
+            closestParkName: "Fehler bei der Park-Suche"
+        };
     }
 }
 
@@ -241,7 +246,7 @@ async function getCityData(address) {
     
     const district = await getDistrictFromLatLng(gLatLng);
 
-    const [transportScore, parkScore, healthScore, safetyScore, educationScore, costOfLivingScore] = await Promise.all([
+    const [transportScore, parkData, healthScore, safetyScore, educationScore, costOfLivingScore] = await Promise.all([
         getTransportScore(latLng),      
         getGreenAreaScore(gLatLng),      
         getHealthScore(gLatLng),
@@ -253,7 +258,8 @@ async function getCityData(address) {
     return {
         latLng,               // lat/lng for future use
         transportScore,
-        parkScore,
+        parkScore: parkData.score,
+        closestParkName: parkData.closestParkName,
         healthScore,
         safetyScore,
         educationScore,
@@ -269,7 +275,6 @@ async function calculateQoL(address1, address2, situation1, situation2) {
         const qol1 = await computeQoL(data1, situation1);
         const qol2 = await computeQoL(data2, situation2);
 
-
         document.getElementById('qol1').innerText = `Quality of Life für Adresse1: ${Math.round(qol1)}`;
         document.getElementById('qol2').innerText = `Quality of Life für Adresse2: ${Math.round(qol2)}`;
 
@@ -277,7 +282,10 @@ async function calculateQoL(address1, address2, situation1, situation2) {
         document.getElementById('qolDifference').innerText = `QoL-Differenz: ${Math.round(qolDifference)}`;
 
         document.getElementById('result').style.display = 'block';
-        document.getElementById('nearestPark').innerText = `Nächstgelegener Park zu Adresse2: ${window.closestParkName}`;
+        document.getElementById('nearestPark').innerHTML = `
+            Nächstgelegener Park zu Adresse1: ${data1.closestParkName}<br>
+            Nächstgelegener Park zu Adresse2: ${data2.closestParkName}
+        `;
 
     } catch (error) {
         alert("Error calculating QoL: " + error);
@@ -323,7 +331,7 @@ function renderQoLBreakdown(data, totalScore) {
     document.getElementById("qolEducation").textContent = data.educationScore;
     document.getElementById("qolSafety").textContent = data.safetyScore;
     document.getElementById("qolCost").textContent = data.costOfLivingScore;
-    document.getElementById("closestPark").textContent = window.closestParkName || "N/A";
+    document.getElementById("closestPark").textContent = data.closestParkName || "N/A";
     document.getElementById("results").style.display = "block";
 
     const weightSummary = document.getElementById("weightSummary");

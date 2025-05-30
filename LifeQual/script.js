@@ -51,20 +51,32 @@ async function geocodeAddress(address) {
 
 async function getGreenAreaScore(latLng) {
     try {
-        const response = await fetch(`http://localhost:3000/api/parks?lat=${latLng.lat}&lng=${latLng.lng}&radius=1000`);
+        // Convert Google Maps LatLng object to plain coordinates
+        const lat = latLng.lat();
+        const lng = latLng.lng();
+        
+        console.log('Searching for parks near:', { lat, lng });
+        const response = await fetch(`http://localhost:3000/api/parks?lat=${lat}&lng=${lng}&radius=2000`);
         const parks = await response.json();
+        console.log('Found parks:', parks);
         
         let closestDistance = Infinity;
         let closestParkName = "Kein Park in der Nähe gefunden";
 
         if (parks && parks.length > 0) {
             parks.forEach(park => {
-                const [lon, lat] = park.coordinates.split(',').map(Number);
-                const parkLatLng = new google.maps.LatLng(lat, lon);
-                const dist = google.maps.geometry.spherical.computeDistanceBetween(latLng, parkLatLng);
-                if (dist < closestDistance) {
-                    closestDistance = dist;
-                    closestParkName = park.name || "Unbenannter Park";
+                // Parse coordinates from format "(longitude, latitude)"
+                const coordsMatch = park.coordinates.match(/\(([^,]+),\s*([^)]+)\)/);
+                if (coordsMatch) {
+                    const lon = parseFloat(coordsMatch[1]);
+                    const lat = parseFloat(coordsMatch[2]);
+                    const parkLatLng = new google.maps.LatLng(lat, lon);
+                    const dist = google.maps.geometry.spherical.computeDistanceBetween(latLng, parkLatLng);
+                    console.log(`Park ${park.name} is ${dist.toFixed(2)}m away`);
+                    if (dist < closestDistance) {
+                        closestDistance = dist;
+                        closestParkName = park.name || "Unbenannter Park";
+                    }
                 }
             });
         }

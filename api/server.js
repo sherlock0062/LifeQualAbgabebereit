@@ -53,16 +53,43 @@ app.get('/api/transport-stops', async (req, res) => {
 // Get nearby parks
 app.get('/api/parks', async (req, res) => {
     try {
-        const { lat, lng, radius = 1000 } = req.query;
+        const { lat, lng, radius = 2000 } = req.query;
+        console.log(`Searching for parks near (${lat}, ${lng}) with radius ${radius}m`);
+        
+        // Validate input
+        if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+            console.error('Invalid coordinates:', { lat, lng });
+            return res.status(400).json({ error: 'Invalid coordinates' });
+        }
+
+        const radiusInDegrees = radius/111000; // Convert meters to degrees (roughly)
+        console.log('Radius in degrees:', radiusInDegrees);
+        
         const result = await pool.query(`
-            SELECT name, coordinates, polygon_coordinates, properties
+            SELECT 
+                name, 
+                coordinates::text as coordinates, 
+                polygon_coordinates, 
+                properties
             FROM parks
             WHERE point(coordinates) <-> point($1, $2) < $3
-        `, [lng, lat, radius/111000]); // Convert meters to degrees (roughly)
+            ORDER BY point(coordinates) <-> point($1, $2)
+        `, [lng, lat, radiusInDegrees]);
+        
+        console.log(`Found ${result.rows.length} parks`);
+        if (result.rows.length > 0) {
+            console.log('First park:', result.rows[0]);
+        }
+        
         res.json(result.rows);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('Error in parks endpoint:', err);
+        console.error('Error details:', {
+            message: err.message,
+            stack: err.stack,
+            query: err.query
+        });
+        res.status(500).json({ error: 'Internal server error', details: err.message });
     }
 });
 

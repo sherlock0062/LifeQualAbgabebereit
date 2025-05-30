@@ -13,5 +13,12 @@ services:
     ports:
       - "5432:5432"
 
+    networks:
+      - my-network
+
 volumes:
   pgdata:
+
+networks:
+  my-network:
+    external: true

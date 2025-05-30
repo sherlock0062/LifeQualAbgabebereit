@@ -1,8 +1,9 @@
 let map, directionsService, directionsRenderer;
 
-let haltestellenData = null; 
-let crimeData = null;
-let rentPrices = null;
+// Remove global variables since we'll fetch data on demand
+// let haltestellenData = null; 
+// let crimeData = null;
+// let rentPrices = null;
 
 window.addEventListener('DOMContentLoaded', () => {
     console.log("Application loaded");

@@ -130,6 +130,34 @@ app.get('/api/rent-prices/:district', async (req, res) => {
     }
 });
 
+// Get all crime stats
+app.get('/api/crime-stats', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT district, crimes, year
+            FROM crime_stats
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Get all rent prices
+app.get('/api/rent-prices', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT district, price_per_sqm
+            FROM rent_prices
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 app.listen(port, () => {
     console.log(`API server running at http://localhost:${port}`);
 }); 

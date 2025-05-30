@@ -5,15 +5,7 @@ let crimeData = null;
 let rentPrices = null;
 
 window.addEventListener('DOMContentLoaded', () => {
-    fetch('Haltestelle.json')
-        .then(response => response.json())
-        .then(data => {
-            haltestellenData = data;
-            console.log("Haltestellen loaded:", haltestellenData);
-        })
-        .catch(error => {
-            console.error('Error loading Haltestelle.json:', error);
-        });
+    console.log("Application loaded");
 });
 
 document.getElementById('qlForm').addEventListener('submit', async function(e) {
@@ -58,34 +50,19 @@ async function geocodeAddress(address) {
 
 async function getGreenAreaScore(latLng) {
     try {
-        const response = await fetch("parks.json");
+        const response = await fetch(`http://localhost:3000/api/parks?lat=${latLng.lat}&lng=${latLng.lng}&radius=1000`);
         const parks = await response.json();
-
+        
         let closestDistance = Infinity;
         let closestParkName = "Unbekannt";
 
-        parks.features.forEach(park => {
-            const geom = park.geometry;
-            if (!geom || !geom.coordinates) return;
-
-            let parkCoord = null;
-
-            if (geom.type === "Polygon") {
-                parkCoord = geom.coordinates[0][0];
-            } else if (geom.type === "MultiPolygon") {
-                parkCoord = geom.coordinates[0][0][0];
-            } else if (geom.type === "Point") {
-                parkCoord = geom.coordinates;
-            }
-
-            if (parkCoord) {
-                const [lon, lat] = parkCoord;
-                const parkLatLng = new google.maps.LatLng(lat, lon);
-                const dist = google.maps.geometry.spherical.computeDistanceBetween(latLng, parkLatLng);
-                if (dist < closestDistance) {
-                    closestDistance = dist;
-                    closestParkName = park.properties.ANL_NAME || "Unbekannt";
-                }
+        parks.forEach(park => {
+            const [lon, lat] = park.coordinates.split(',').map(Number);
+            const parkLatLng = new google.maps.LatLng(lat, lon);
+            const dist = google.maps.geometry.spherical.computeDistanceBetween(latLng, parkLatLng);
+            if (dist < closestDistance) {
+                closestDistance = dist;
+                closestParkName = park.name || "Unbekannt";
             }
         });
 
@@ -102,47 +79,26 @@ async function getGreenAreaScore(latLng) {
     }
 }
 
-
 async function getTransportScore(latLng) {
     try {
-        const RADIUS_METERS = 500;
-
-        // Wait for data if it's not loaded yet
-        while (!haltestellenData) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-    }
-
-        let nearbyCount = 0;
-        haltestellenData.features.forEach(stop => {
-            const [lng, lat] = stop.geometry.coordinates;
-            const stopLatLng = new google.maps.LatLng(lat, lng);
-            const distance = google.maps.geometry.spherical.computeDistanceBetween(
-                new google.maps.LatLng(latLng.lat, latLng.lng),
-                stopLatLng
-            );
-            if (distance <= RADIUS_METERS) {
-                nearbyCount++;
-            }
-        });
-        
-
-    return Math.min(nearbyCount * 10, 100);
+        const response = await fetch(`http://localhost:3000/api/transport-stops?lat=${latLng.lat}&lng=${latLng.lng}&radius=500`);
+        const stops = await response.json();
+        return Math.min(stops.length * 10, 100);
     } catch (error) {
-        console.log("Failed to calculate transport score:");
+        console.log("Failed to calculate transport score:", error);
         return 50;
     }
 }
 
 async function getHealthScore(latLng) {
     try {
-        const response = await fetch("Krankenhaus.json");
-        if (!response.ok) throw new Error("Failed to fetch hospital data");
-
+        const response = await fetch(`http://localhost:3000/api/hospitals?lat=${latLng.lat}&lng=${latLng.lng}&radius=8000`);
         const hospitals = await response.json();
+        
         let closestDistance = Infinity;
 
-        hospitals.features.forEach(hospital => {
-            const [lon, lat] = hospital.geometry.coordinates;
+        hospitals.forEach(hospital => {
+            const [lon, lat] = hospital.coordinates.split(',').map(Number);
             const hospitalLatLng = new google.maps.LatLng(lat, lon);
             const distance = google.maps.geometry.spherical.computeDistanceBetween(latLng, hospitalLatLng);
             if (distance < closestDistance) {
@@ -156,7 +112,6 @@ async function getHealthScore(latLng) {
         if (closestDistance < 4000) return 50;
         if (closestDistance < 8000) return 30;
         return 10;
-
     } catch (error) {
         console.warn("Health score fallback:", error);
         return 50;
@@ -165,71 +120,36 @@ async function getHealthScore(latLng) {
 
 async function getSafetyScoreFromDistrict(districtName) {
     try {
-    // Load JSON once
-    if (!crimeData) {
-        const response = await fetch("crimeStats2024.json");
-        crimeData = await response.json();
-    }
+        const response = await fetch(`http://localhost:3000/api/crime-stats/${encodeURIComponent(districtName)}`);
+        const data = await response.json();
+        
+        if (data.error) return 50;
 
-    const entry = crimeData.find(d =>
-        d.district.toLowerCase() === districtName.toLowerCase()
-    );
-    if (!entry) return 50;
+        // Get all crime stats to calculate min/max
+        const allStatsResponse = await fetch('http://localhost:3000/api/crime-stats');
+        const allStats = await allStatsResponse.json();
+        
+        const maxCrime = Math.max(...allStats.map(d => d.crimes));
+        const minCrime = Math.min(...allStats.map(d => d.crimes));
 
-    const maxCrime = Math.max(...crimeData.map(d => d.crimes));
-    const minCrime = Math.min(...crimeData.map(d => d.crimes));
-
-    const normalized = 1 - ((entry.crimes - minCrime) / (maxCrime - minCrime)); // lower crime = higher score
-    return Math.round(normalized * 100);
-    }catch (error) {
-        console.warn("Crime score fallback:", error);
-        return 50;
-    }
-}
-
-async function getDistrictFromLatLng(latLng) {
-    return new Promise((resolve, reject) => {
-        const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ location: latLng }, (results, status) => {
-            if (status === "OK" && results[0]) {
-                const districtMatch = results[0].address_components.find(c =>
-                    c.types.includes("political") &&
-                    c.types.includes("sublocality_level_1")
-                );
-
-                if (districtMatch) {
-                    resolve(districtMatch.long_name); // e.g., "Favoriten"
-                } else {
-                    reject("District not found in address components.");
-                }
-            } else {
-                reject("Geocoding failed: " + status);
-            }
-        });
-    });
-}
-
-async function calculateSafetyScore(latLng) {
-    try {
-        const district = await getDistrictFromLatLng(latLng);
-        return getSafetyScoreFromDistrict(district);
+        const normalized = 1 - ((data.crimes - minCrime) / (maxCrime - minCrime));
+        return Math.round(normalized * 100);
     } catch (error) {
-        console.error("Failed to calculate safety score:", error);
+        console.warn("Crime score fallback:", error);
         return 50;
     }
 }
 
 async function getEducationScore(latLng) {
     try {
-        const response = await fetch("Schulen.json");
+        const response = await fetch(`http://localhost:3000/api/schools?lat=${latLng.lat}&lng=${latLng.lng}&radius=3000`);
         const schools = await response.json();
-
+        
         let closestDistance = Infinity;
 
-        schools.features.forEach(school => {
-            const [lon, lat] = school.geometry.coordinates;
+        schools.forEach(school => {
+            const [lon, lat] = school.coordinates.split(',').map(Number);
             const schoolLatLng = new google.maps.LatLng(lat, lon);
-
             const distance = google.maps.geometry.spherical.computeDistanceBetween(latLng, schoolLatLng);
             if (distance < closestDistance) {
                 closestDistance = distance;
@@ -248,27 +168,21 @@ async function getEducationScore(latLng) {
 }
 
 async function getCostOfLivingScore(district) {
-    if (!rentPrices) {
-        const response = await fetch("rentPrices.json");
-        rentPrices = await response.json();
-    }
-
-    if (!rentPrices[district]) return 50; // fallback if district not found
-
-    const rent = rentPrices[district];
-    const rents = Object.values(rentPrices);
-    const min = Math.min(...rents);
-    const max = Math.max(...rents);
-
-    // Invert: Lower rent = higher score
-    const normalized = 1 - (rent - min) / (max - min);
-    return Math.round(normalized * 100);
-}
-
-async function calculateCostOfLivingScore(latLng) {
     try {
-        const district = await getDistrictFromLatLng(latLng);
-        return getCostOfLivingScore(district);
+        const response = await fetch(`http://localhost:3000/api/rent-prices/${encodeURIComponent(district)}`);
+        const data = await response.json();
+        
+        if (data.error) return 50;
+
+        // Get all rent prices to calculate min/max
+        const allPricesResponse = await fetch('http://localhost:3000/api/rent-prices');
+        const allPrices = await allPricesResponse.json();
+        
+        const maxPrice = Math.max(...allPrices.map(p => p.price_per_sqm));
+        const minPrice = Math.min(...allPrices.map(p => p.price_per_sqm));
+
+        const normalized = 1 - ((data.price_per_sqm - minPrice) / (maxPrice - minPrice));
+        return Math.round(normalized * 100);
     } catch (error) {
         console.error("Cost of living score error:", error);
         return 50;

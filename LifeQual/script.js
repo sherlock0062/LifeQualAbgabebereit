@@ -190,14 +190,48 @@ async function getCostOfLivingScore(district) {
     }
 }
 
+async function getDistrictFromLatLng(latLng) {
+    try {
+        // Use the Google Maps Geocoder to get the address components
+        const geocoder = new google.maps.Geocoder();
+        const response = await new Promise((resolve, reject) => {
+            geocoder.geocode({ location: latLng }, (results, status) => {
+                if (status === "OK") {
+                    resolve(results[0]);
+                } else {
+                    reject(new Error("Geocoding failed: " + status));
+                }
+            });
+        });
+
+        // Look for the district in address components
+        const addressComponents = response.address_components;
+        for (const component of addressComponents) {
+            // In Vienna, districts are typically administrative_area_level_3
+            if (component.types.includes("administrative_area_level_3")) {
+                return component.long_name;
+            }
+        }
+
+        // If no district found, try to extract it from the formatted address
+        const formattedAddress = response.formatted_address;
+        const districtMatch = formattedAddress.match(/(\d+)\..*Bezirk/);
+        if (districtMatch) {
+            return districtMatch[1] + ". Bezirk";
+        }
+
+        throw new Error("Could not determine district");
+    } catch (error) {
+        console.error("Error getting district:", error);
+        return "1. Bezirk"; // Default to 1st district if we can't determine
+    }
+}
+
 async function getCityData(address) {
-    
     const gLatLng = await geocodeAddress(address);
     if (!gLatLng || typeof gLatLng.lat !== 'function' || typeof gLatLng.lng !== 'function') {
         throw new Error("Invalid geocoded LatLng object");
-    } 
-    // This is a google.maps.LatLng object
- 
+    }
 
     // Convert to plain object for custom scoring functions
     const latLng = {
@@ -205,16 +239,15 @@ async function getCityData(address) {
         lng: gLatLng.lng()
     };
     
-    const district = await getDistrictFromLatLng(latLng);
-
+    const district = await getDistrictFromLatLng(gLatLng);
 
     const [transportScore, parkScore, healthScore, safetyScore, educationScore, costOfLivingScore] = await Promise.all([
         getTransportScore(latLng),      
         getGreenAreaScore(gLatLng),      
         getHealthScore(gLatLng),
-        calculateSafetyScore(latLng),
+        getSafetyScoreFromDistrict(district),
         getEducationScore(latLng),
-        calculateCostOfLivingScore(latLng)
+        getCostOfLivingScore(district)
     ]);
 
     return {

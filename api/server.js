@@ -41,12 +41,8 @@ app.get('/api/transport-stops', async (req, res) => {
         const result = await pool.query(`
             SELECT name, coordinates, properties
             FROM transport_stops
-            WHERE ST_DWithin(
-                coordinates::geography,
-                ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
-                $3
-            )
-        `, [lng, lat, radius]);
+            WHERE point(coordinates) <-> point($1, $2) < $3
+        `, [lng, lat, radius/111000]); // Convert meters to degrees (roughly)
         res.json(result.rows);
     } catch (err) {
         console.error(err);
@@ -61,12 +57,8 @@ app.get('/api/parks', async (req, res) => {
         const result = await pool.query(`
             SELECT name, coordinates, polygon_coordinates, properties
             FROM parks
-            WHERE ST_DWithin(
-                coordinates::geography,
-                ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
-                $3
-            )
-        `, [lng, lat, radius]);
+            WHERE point(coordinates) <-> point($1, $2) < $3
+        `, [lng, lat, radius/111000]); // Convert meters to degrees (roughly)
         res.json(result.rows);
     } catch (err) {
         console.error(err);
@@ -81,12 +73,8 @@ app.get('/api/hospitals', async (req, res) => {
         const result = await pool.query(`
             SELECT name, coordinates, properties
             FROM hospitals
-            WHERE ST_DWithin(
-                coordinates::geography,
-                ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
-                $3
-            )
-        `, [lng, lat, radius]);
+            WHERE point(coordinates) <-> point($1, $2) < $3
+        `, [lng, lat, radius/111000]); // Convert meters to degrees (roughly)
         res.json(result.rows);
     } catch (err) {
         console.error(err);
@@ -117,12 +105,8 @@ app.get('/api/schools', async (req, res) => {
         const result = await pool.query(`
             SELECT name, coordinates, properties
             FROM schools
-            WHERE ST_DWithin(
-                coordinates::geography,
-                ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
-                $3
-            )
-        `, [lng, lat, radius]);
+            WHERE point(coordinates) <-> point($1, $2) < $3
+        `, [lng, lat, radius/111000]); // Convert meters to degrees (roughly)
         res.json(result.rows);
     } catch (err) {
         console.error(err);

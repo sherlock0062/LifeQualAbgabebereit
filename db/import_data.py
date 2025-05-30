@@ -27,7 +27,7 @@ def create_schema(conn):
         CREATE TABLE IF NOT EXISTS transport_stops (
             id SERIAL PRIMARY KEY,
             name VARCHAR(255),
-            coordinates GEOMETRY(Point, 4326),
+            coordinates POINT,
             properties JSONB
         );
 
@@ -35,8 +35,8 @@ def create_schema(conn):
         CREATE TABLE IF NOT EXISTS parks (
             id SERIAL PRIMARY KEY,
             name VARCHAR(255),
-            coordinates GEOMETRY(Point, 4326),
-            polygon_coordinates GEOMETRY(Polygon, 4326),
+            coordinates POINT,
+            polygon_coordinates JSONB,
             properties JSONB
         );
 
@@ -44,7 +44,7 @@ def create_schema(conn):
         CREATE TABLE IF NOT EXISTS hospitals (
             id SERIAL PRIMARY KEY,
             name VARCHAR(255),
-            coordinates GEOMETRY(Point, 4326),
+            coordinates POINT,
             properties JSONB
         );
 
@@ -60,7 +60,7 @@ def create_schema(conn):
         CREATE TABLE IF NOT EXISTS schools (
             id SERIAL PRIMARY KEY,
             name VARCHAR(255),
-            coordinates GEOMETRY(Point, 4326),
+            coordinates POINT,
             properties JSONB
         );
 
@@ -90,7 +90,7 @@ def import_transport_stops(conn, json_file):
         coords = feature['geometry']['coordinates']
         cur.execute("""
             INSERT INTO transport_stops (name, coordinates, properties)
-            VALUES (%s, ST_SetSRID(ST_MakePoint(%s, %s), 4326), %s)
+            VALUES (%s, POINT(%s, %s), %s)
         """, (
             feature['properties'].get('name', ''),
             coords[0],  # longitude
@@ -110,7 +110,7 @@ def import_parks(conn, json_file):
             coords = geom['coordinates']
             cur.execute("""
                 INSERT INTO parks (name, coordinates, properties)
-                VALUES (%s, ST_SetSRID(ST_MakePoint(%s, %s), 4326), %s)
+                VALUES (%s, POINT(%s, %s), %s)
             """, (
                 feature['properties'].get('ANL_NAME', ''),
                 coords[0],
@@ -120,18 +120,14 @@ def import_parks(conn, json_file):
         elif geom['type'] in ['Polygon', 'MultiPolygon']:
             # For polygons, we'll store the first point as coordinates
             coords = geom['coordinates'][0][0] if geom['type'] == 'Polygon' else geom['coordinates'][0][0][0]
-            # Create polygon geometry
-            polygon_coords = geom['coordinates'][0] if geom['type'] == 'Polygon' else geom['coordinates'][0][0]
-            polygon_str = ','.join([f"{coord[0]} {coord[1]}" for coord in polygon_coords])
             cur.execute("""
                 INSERT INTO parks (name, coordinates, polygon_coordinates, properties)
-                VALUES (%s, ST_SetSRID(ST_MakePoint(%s, %s), 4326), 
-                        ST_SetSRID(ST_GeomFromText('POLYGON((%s))'), 4326), %s)
+                VALUES (%s, POINT(%s, %s), %s, %s)
             """, (
                 feature['properties'].get('ANL_NAME', ''),
                 coords[0],
                 coords[1],
-                polygon_str,
+                Json(geom['coordinates']),
                 Json(feature['properties'])
             ))
     conn.commit()
@@ -145,7 +141,7 @@ def import_hospitals(conn, json_file):
         coords = feature['geometry']['coordinates']
         cur.execute("""
             INSERT INTO hospitals (name, coordinates, properties)
-            VALUES (%s, ST_SetSRID(ST_MakePoint(%s, %s), 4326), %s)
+            VALUES (%s, POINT(%s, %s), %s)
         """, (
             feature['properties'].get('name', ''),
             coords[0],
@@ -179,7 +175,7 @@ def import_schools(conn, json_file):
         coords = feature['geometry']['coordinates']
         cur.execute("""
             INSERT INTO schools (name, coordinates, properties)
-            VALUES (%s, ST_SetSRID(ST_MakePoint(%s, %s), 4326), %s)
+            VALUES (%s, POINT(%s, %s), %s)
         """, (
             feature['properties'].get('name', ''),
             coords[0],

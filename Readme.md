@@ -12,8 +12,21 @@ in the terminal: docker run -d --name pgadmin4 --network my-network -p 5050:80 -
 
 this creates the pgadmin4 container which then can be started and stopped from docker desktop to look into all our current and future databases.
 
-# docker-compose
+# docker-compose and database population
 naviate to the folder where the docker-compose.yml is and
-in the terminal: docker-compose up
+in the terminal: docker-compose up -d
 
-to start the container defined by the yml, in this case a postgres database.
+to start the container defined by the yml, in this case a postgres database detached.
+if there are any issues with the database volume
+in the terminal: docker-compose down -v
+will delte the volume so you can start anew. be aware that this
+will delete all data of the database.
+
+then navigate to db where the import_data.py is and write'
+in the terminal: pip install -r requirements.txt
+to install the require python psycopg2-binary==2.9.9 
+which we need for our import_data.py
+then
+in the terminal: python import_data.py
+to run the script to import our data in the database.
+

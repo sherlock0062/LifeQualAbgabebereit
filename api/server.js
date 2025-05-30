@@ -50,10 +50,29 @@ app.get('/api/transport-stops', async (req, res) => {
     }
 });
 
+// Debug endpoint to check raw data
+app.get('/api/debug/parks', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                name, 
+                coordinates::text as coordinates, 
+                polygon_coordinates, 
+                properties
+            FROM parks
+            LIMIT 5
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error in debug endpoint:', err);
+        res.status(500).json({ error: 'Internal server error', details: err.message });
+    }
+});
+
 // Get nearby parks
 app.get('/api/parks', async (req, res) => {
     try {
-        const { lat, lng, radius = 2000 } = req.query;
+        const { lat, lng, radius = 5000 } = req.query; // Increased default radius to 5km
         console.log(`Searching for parks near (${lat}, ${lng}) with radius ${radius}m`);
         
         // Validate input
@@ -62,23 +81,44 @@ app.get('/api/parks', async (req, res) => {
             return res.status(400).json({ error: 'Invalid coordinates' });
         }
 
+        // Convert coordinates to numbers
+        const latitude = parseFloat(lat);
+        const longitude = parseFloat(lng);
+        
+        // Validate coordinate ranges
+        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+            console.error('Coordinates out of valid range:', { latitude, longitude });
+            return res.status(400).json({ error: 'Coordinates out of valid range' });
+        }
+
         const radiusInDegrees = radius/111000; // Convert meters to degrees (roughly)
         console.log('Radius in degrees:', radiusInDegrees);
         
-        const result = await pool.query(`
+        // Query with explicit coordinate handling
+        const query = `
             SELECT 
                 name, 
                 coordinates::text as coordinates, 
                 polygon_coordinates, 
-                properties
+                properties,
+                point(coordinates) <-> point($1, $2) as distance
             FROM parks
             WHERE point(coordinates) <-> point($1, $2) < $3
             ORDER BY point(coordinates) <-> point($1, $2)
-        `, [lng, lat, radiusInDegrees]);
+        `;
+        
+        console.log('Query:', query);
+        console.log('Parameters:', [longitude, latitude, radiusInDegrees]);
+        
+        const result = await pool.query(query, [longitude, latitude, radiusInDegrees]);
         
         console.log(`Found ${result.rows.length} parks`);
         if (result.rows.length > 0) {
-            console.log('First park:', result.rows[0]);
+            console.log('First park:', {
+                name: result.rows[0].name,
+                coordinates: result.rows[0].coordinates,
+                distance: result.rows[0].distance
+            });
         }
         
         res.json(result.rows);
@@ -89,7 +129,11 @@ app.get('/api/parks', async (req, res) => {
             stack: err.stack,
             query: err.query
         });
-        res.status(500).json({ error: 'Internal server error', details: err.message });
+        res.status(500).json({ 
+            error: 'Internal server error', 
+            details: err.message,
+            query: err.query
+        });
     }
 });
 

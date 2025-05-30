@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quality of Life Calculator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Quality of Life Calculator</h1>
+        <form id="qlForm">
+            <!-- Address 1 -->
+            <label for="address1">Addresse 1:</label>
+            <input type="text" id="address1" name="address1" required><br><br>
+
+            <label for="situation1">Lebensstatus Adresse 1:</label>
+            <select id="situation1" name="situation1">
+                <option value="student">Student*in</option>
+                <option value="parent">Elternteil</option>
+                <option value="senior">Pensionist*in</option>
+                <option value="unemployed">Arbeitslos</option>
+            </select><br><br>
+
+            <!-- Address 2 -->
+            <label for="address2">Addresse 2:</label>
+            <input type="text" id="address2" name="address2" required><br><br>
+
+            <label for="situation2">Lebensstatus Adresse 2:</label>
+            <select id="situation2" name="situation2">
+                <option value="student">Student*in</option>
+                <option value="parent">Elternteil</option>
+                <option value="senior">Pensionist*in</option>
+                <option value="unemployed">Arbeitslos</option>
+            </select><br><br>
+
+            <button type="submit">Calculate QoL</button>
+        </form>
+
+        <div id="result">
+            <h3>Quality of Life Comparison:</h3>
+            <p id="qol1"></p>
+            <p id="qol2"></p>
+            <p id="qolDifference"></p>
+            <p id="linearDistance"></p>
+            <p id="routeDistance"></p>
+            <p id="nearestPark"></p>
+        </div>
+        
+
+        <div id="map" style="height: 400px; width: 100%;"></div>
+
+        <div id="results" style="display:none; margin-top: 2em;">
+            <h2>📊 Quality of Life Report zu Adresse2:</h2>
+            <p><strong>Total Score:</strong> <span id="qolTotal"></span>/100</p>
+            <ul>
+              <li>🏥 Health: <span id="qolHealth"></span></li>
+              <li>🚌 Transport: <span id="qolTransport"></span></li>
+              <li>🏞️ Green Area: <span id="qolParks"></span> (closest: <span id="closestPark"></span>)</li>
+              <li>🏫 Education: <span id="qolEducation"></span></li>
+              <li>🛡️ Safety: <span id="qolSafety"></span></li>
+              <li>💰 Cost of Living: <span id="qolCost"></span></li>
+            </ul>
+            <button onclick="downloadQoLPDF()" style="margin-top: 1em;">📄 Save Report as PDF</button>
+
+          </div>
+          <div id="weightSummary" style="margin-top: 10px;">
+            <ul id="weightList"></ul>
+          </div>
+          
+          
+          
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="script.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBRFMKzpMSEyW_qFUv4KCmRBGSngzfOUX8&libraries=geometry&callback=initMap" async defer></script>
+
+    
+
+</body>
+</html>

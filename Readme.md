@@ -30,3 +30,21 @@ then
 in the terminal: python import_data.py
 to run the script to import our data in the database.
 
+
+# Api
+
+Now we have to work on the api:
+
+navigate to the api folder and
+in the terminal: npm install
+
+if you get an error due to about_Execution_Policies
+run PowerShell as Administrator and
+in the terminal: Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+
+then
+in the terminal: npm start
+to start up our server.
+
+and then
+double click on the home.html to test out the website!

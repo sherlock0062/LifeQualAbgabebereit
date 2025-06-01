@@ -220,28 +220,39 @@ async function getEducationScore(latLng) {
     try {
         const response = await fetch(`http://localhost:3000/api/schools?lat=${latLng.lat}&lng=${latLng.lng}&radius=3000`);
         const schools = await response.json();
-        
+
         let closestDistance = Infinity;
 
         schools.forEach(school => {
-            const [lon, lat] = school.coordinates.split(',').map(Number);
+            // Sicherstellen, dass Koordinaten vorhanden und korrekt sind
+            if (!school.coordinates || typeof school.coordinates.x !== 'number' || typeof school.coordinates.y !== 'number') {
+                return; // überspringen, falls ungültige Koordinaten
+            }
+
+            const lon = school.coordinates.x;
+            const lat = school.coordinates.y;
+
             const schoolLatLng = new google.maps.LatLng(lat, lon);
             const distance = google.maps.geometry.spherical.computeDistanceBetween(latLng, schoolLatLng);
+
             if (distance < closestDistance) {
                 closestDistance = distance;
             }
         });
 
+        // Punktevergabe je nach Entfernung zur nächsten Schule
         if (closestDistance < 100) return 100;
         if (closestDistance < 300) return 80;
         if (closestDistance < 500) return 60;
         if (closestDistance < 1000) return 40;
         return 20;
+
     } catch (error) {
         console.error("Failed to calculate education score:", error);
-        return 50;
+        return 50; // Fallback-Wert bei Fehler
     }
 }
+
 
 async function getCostOfLivingScore(district) {
     try {

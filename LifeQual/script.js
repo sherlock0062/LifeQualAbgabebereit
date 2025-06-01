@@ -278,40 +278,49 @@ async function getCostOfLivingScore(district) {
 
 async function getDistrictFromLatLng(latLng) {
     try {
-        // Use the Google Maps Geocoder to get the address components
         const geocoder = new google.maps.Geocoder();
         const response = await new Promise((resolve, reject) => {
             geocoder.geocode({ location: latLng }, (results, status) => {
-                if (status === "OK") {
+                if (status === "OK" && results.length > 0) {
                     resolve(results[0]);
                 } else {
-                    reject(new Error("Geocoding failed: " + status));
+                    reject(new Error("Geocoding failed or returned no results: " + status));
                 }
             });
         });
 
-        // Look for the district in address components
+        console.log("Geocoding response:", response);
+
         const addressComponents = response.address_components;
         for (const component of addressComponents) {
-            // In Vienna, districts are typically administrative_area_level_3
-            if (component.types.includes("administrative_area_level_3")) {
+            if (
+                component.types.includes("administrative_area_level_3") ||
+                component.types.includes("sublocality_level_1") ||
+                component.types.includes("postal_code")
+            ) {
+                console.log("Matched component:", component);
                 return component.long_name;
             }
         }
 
-        // If no district found, try to extract it from the formatted address
         const formattedAddress = response.formatted_address;
-        const districtMatch = formattedAddress.match(/(\d+)\..*Bezirk/);
+        const districtMatch = formattedAddress.match(/(\d{1,2})\.\s?Bezirk/i);
         if (districtMatch) {
-            return districtMatch[1] + ". Bezirk";
+            return `${districtMatch[1]}. Bezirk`;
+        }
+
+        const postalMatch = formattedAddress.match(/\b10(\d)\b/);
+        if (postalMatch) {
+            return `${postalMatch[1]}. Bezirk`;
         }
 
         throw new Error("Could not determine district");
     } catch (error) {
-        console.error("Error getting district:", error);
-        return "1. Bezirk"; // Default to 1st district if we can't determine
+        console.error("Error getting district:", error, "for latLng:", latLng);
+        return "1. Bezirk"; // Fallback
     }
 }
+
 
 async function getCityData(address) {
     const gLatLng = await geocodeAddress(address);

@@ -107,7 +107,7 @@ async function getTransportScore(latLng) {
         const RADIUS_METERS = 500;
 
         const response = await fetch(
-            `http://localhost:3000/api/transport-stops?lat=${lat}&lng=${lng}&radius=${RADIUS_METERS}`
+            `http://localhost:3000/api/transport-stops?lat=${lat}&lng=${lng}&radius=500`
         );
 
         if (!response.ok) {
@@ -156,13 +156,24 @@ async function getTransportScore(latLng) {
 
 async function getHealthScore(latLng) {
     try {
-        const response = await fetch(`http://localhost:3000/api/hospitals?lat=${latLng.lat}&lng=${latLng.lng}&radius=8000`);
+
+        const lat = typeof latLng.lat === 'function' ? latLng.lat() : latLng.lat;
+        const lng = typeof latLng.lng === 'function' ? latLng.lng() : latLng.lng;
+
+        const response = await fetch(`http://localhost:3000/api/hospitals?lat=${lat}&lng=${lng}&radius=8000`);
         const hospitals = await response.json();
-        
+
+        console.log('Hospitals response:', hospitals);
+        if (!Array.isArray(hospitals)) {
+            console.warn('Hospitals ist kein Array, benutze hospitals.data oder andere Struktur.');
+            return 50; // Fallback-Score
+        }
+
         let closestDistance = Infinity;
 
         hospitals.forEach(hospital => {
-            const [lon, lat] = hospital.coordinates.split(',').map(Number);
+            const lon = hospital.coordinates.x;
+            const lat = hospital.coordinates.y;
             const hospitalLatLng = new google.maps.LatLng(lat, lon);
             const distance = google.maps.geometry.spherical.computeDistanceBetween(latLng, hospitalLatLng);
             if (distance < closestDistance) {
@@ -181,6 +192,7 @@ async function getHealthScore(latLng) {
         return 50;
     }
 }
+
 
 async function getSafetyScoreFromDistrict(districtName) {
     try {

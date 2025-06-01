@@ -174,10 +174,10 @@ async function getEducationScore(latLng) {
             }
         });
 
-        if (closestDistance < 300) return 100;
-        if (closestDistance < 700) return 80;
-        if (closestDistance < 1500) return 60;
-        if (closestDistance < 3000) return 40;
+        if (closestDistance < 100) return 100;
+        if (closestDistance < 300) return 80;
+        if (closestDistance < 500) return 60;
+        if (closestDistance < 1000) return 40;
         return 20;
     } catch (error) {
         console.error("Failed to calculate education score:", error);

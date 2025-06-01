@@ -20,7 +20,7 @@ to start the container defined by the yml, in this case a postgres database deta
 if there are any issues with the database volume
 in the terminal: docker-compose down -v
 will delte the volume so you can start anew. be aware that this
-will delete all data of the database.
+will delete all data of the database. 
 
 then navigate to db where the import_data.py is and write'
 in the terminal: pip install -r requirements.txt

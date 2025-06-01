@@ -65,20 +65,41 @@ async function geocodeAddress(address) {
                 const addressComponents = result.address_components;
                 let isInVienna = false;
                 let postalCode = '';
+                let hasStreetNumber = false;
+                let hasStreetName = false;
 
                 for (const component of addressComponents) {
                     console.log("Checking component:", component);
+                    
+                    // Check for street number
+                    if (component.types.includes("street_number")) {
+                        hasStreetNumber = true;
+                    }
+                    
+                    // Check for street name
+                    if (component.types.includes("route")) {
+                        hasStreetName = true;
+                    }
+
                     // Check for Vienna in administrative_area_level_1
                     if (component.types.includes("administrative_area_level_1") && 
                         (component.long_name === "Vienna" || component.long_name === "Wien")) {
                         isInVienna = true;
                         console.log("Found Vienna in component");
                     }
+                    
                     // Get postal code
                     if (component.types.includes("postal_code")) {
                         postalCode = component.long_name;
                         console.log("Found postal code:", postalCode);
                     }
+                }
+
+                // Validate that this is a real address
+                if (!hasStreetName || !hasStreetNumber) {
+                    console.log("Invalid address: missing street name or number");
+                    reject("Bitte geben Sie eine gültige Adresse mit Straße und Hausnummer ein.");
+                    return;
                 }
 
                 if (!isInVienna) {
@@ -91,6 +112,16 @@ async function geocodeAddress(address) {
                 if (!postalCode.startsWith('1')) {
                     console.log("Invalid postal code:", postalCode);
                     reject("Die Adresse muss eine gültige Wiener Postleitzahl haben (beginnend mit 1).");
+                    return;
+                }
+
+                // Additional validation: check if the formatted address contains the original street name
+                const originalStreetName = address.split(',')[0].trim().toLowerCase();
+                const resultStreetName = result.formatted_address.split(',')[0].trim().toLowerCase();
+                
+                if (!resultStreetName.includes(originalStreetName)) {
+                    console.log("Street name mismatch:", originalStreetName, "vs", resultStreetName);
+                    reject("Die eingegebene Adresse konnte nicht gefunden werden. Bitte überprüfen Sie die Schreibweise.");
                     return;
                 }
 
@@ -273,29 +304,43 @@ async function getSafetyScoreFromDistrict(districtName) {
 
 async function getEducationScore(latLng) {
     try {
-        const response = await fetch(`http://localhost:3000/api/schools?lat=${latLng.lat}&lng=${latLng.lng}&radius=3000`);
+        // Ensure we have the correct lat/lng values
+        const lat = typeof latLng.lat === 'function' ? latLng.lat() : latLng.lat;
+        const lng = typeof latLng.lng === 'function' ? latLng.lng() : latLng.lng;
+
+        console.log('Searching for schools near:', { lat, lng });
+        const response = await fetch(`http://localhost:3000/api/schools?lat=${lat}&lng=${lng}&radius=3000`);
         const schools = await response.json();
+        console.log('Found schools:', schools);
 
         let closestDistance = Infinity;
 
         schools.forEach(school => {
-            // Sicherstellen, dass Koordinaten vorhanden und korrekt sind
+            // Ensure coordinates are valid
             if (!school.coordinates || typeof school.coordinates.x !== 'number' || typeof school.coordinates.y !== 'number') {
-                return; // überspringen, falls ungültige Koordinaten
+                console.warn('Invalid coordinates for school:', school);
+                return;
             }
 
-            const lon = school.coordinates.x;
-            const lat = school.coordinates.y;
+            const schoolLat = school.coordinates.y;
+            const schoolLng = school.coordinates.x;
 
-            const schoolLatLng = new google.maps.LatLng(lat, lon);
-            const distance = google.maps.geometry.spherical.computeDistanceBetween(latLng, schoolLatLng);
+            const schoolLatLng = new google.maps.LatLng(schoolLat, schoolLng);
+            const originLatLng = new google.maps.LatLng(lat, lng);
+            const distance = google.maps.geometry.spherical.computeDistanceBetween(originLatLng, schoolLatLng);
 
             if (distance < closestDistance) {
                 closestDistance = distance;
             }
         });
 
-        // Punktevergabe je nach Entfernung zur nächsten Schule
+        // If no valid schools were found, return a default score
+        if (closestDistance === Infinity) {
+            console.warn('No valid schools found within radius');
+            return 20; // Default score for no schools nearby
+        }
+
+        // Calculate score based on distance
         if (closestDistance < 100) return 100;
         if (closestDistance < 300) return 80;
         if (closestDistance < 500) return 60;
@@ -304,7 +349,7 @@ async function getEducationScore(latLng) {
 
     } catch (error) {
         console.error("Failed to calculate education score:", error);
-        return 50; // Fallback-Wert bei Fehler
+        return 20; // Default score on error
     }
 }
 

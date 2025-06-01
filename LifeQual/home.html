@@ -44,38 +44,176 @@
             <p id="qolDifference"></p>
             <p id="linearDistance"></p>
             <p id="routeDistance"></p>
-            <p id="nearestPark"></p>
         </div>
         
-
         <div id="map" style="height: 400px; width: 100%;"></div>
 
         <div id="results" style="display:none; margin-top: 2em;">
-            <h2>📊 Quality of Life Report zu Adresse2:</h2>
-            <p><strong>Total Score:</strong> <span id="qolTotal"></span>/100</p>
+            <h2>📊 Quality of Life Report zu Adresse1:</h2>
+            <p><strong>Total Score:</strong> <span id="qolTotal1"></span>/100</p>
             <ul>
-              <li>🏥 Health: <span id="qolHealth"></span></li>
-              <li>🚌 Transport: <span id="qolTransport"></span></li>
-              <li>🏞️ Green Area: <span id="qolParks"></span> (closest: <span id="closestPark"></span>)</li>
-              <li>🏫 Education: <span id="qolEducation"></span></li>
-              <li>🛡️ Safety: <span id="qolSafety"></span></li>
-              <li>💰 Cost of Living: <span id="qolCost"></span></li>
+              <li class="tooltip-container">🏥 Health: <span id="qolHealth1"></span>
+                <div class="tooltip">
+                  <h4>Health Score Explanation</h4>
+                  <p>Berechnet basierend auf der Entfernung zum nächsten Krankenhaus:</p>
+                  <ul>
+                    <li>0-500m: 100 Punkte</li>
+                    <li>500-1000m: 85 Punkte</li>
+                    <li>1000-2000m: 70 Punkte</li>
+                    <li>2000-4000m: 50 Punkte</li>
+                    <li>4000-8000m: 30 Punkte</li>
+                    <li>>8000m: 10 Punkte</li>
+                  </ul>
+                </div>
+              </li>
+              <li class="tooltip-container">🚌 Transport: <span id="qolTransport1"></span>
+                <div class="tooltip">
+                  <h4>Transport Score Explanation</h4>
+                  <p>Berechnet basierend auf der Anzahl der Haltestellen innerhalb von 500m:</p>
+                  <ul>
+                    <li>Jede Haltestelle gibt 10 Punkte</li>
+                    <li>Maximum: 100 Punkte (10+ Haltestellen)</li>
+                  </ul>
+                </div>
+              </li>
+              <li class="tooltip-container">🏞️ Green Area: <span id="qolParks1"></span> (closest: <span id="closestPark1"></span>)
+                <div class="tooltip">
+                  <h4>Green Area Score Explanation</h4>
+                  <p>Berechnet basierend auf der Entfernung zum nächsten Park:</p>
+                  <ul>
+                    <li>0-100m: 100 Punkte</li>
+                    <li>100-300m: 80 Punkte</li>
+                    <li>300-500m: 60 Punkte</li>
+                    <li>500-1000m: 40 Punkte</li>
+                    <li>>1000m: 20 Punkte</li>
+                  </ul>
+                </div>
+              </li>
+              <li class="tooltip-container">🏫 Education: <span id="qolEducation1"></span>
+                <div class="tooltip">
+                  <h4>Education Score Explanation</h4>
+                  <p>Berechnet basierend auf der Entfernung zur nächsten Schule:</p>
+                  <ul>
+                    <li>0-100m: 100 Punkte</li>
+                    <li>100-300m: 80 Punkte</li>
+                    <li>300-500m: 60 Punkte</li>
+                    <li>500-1000m: 40 Punkte</li>
+                    <li>>1000m: 20 Punkte</li>
+                  </ul>
+                </div>
+              </li>
+              <li class="tooltip-container">🛡️ Safety: <span id="qolSafety1"></span>
+                <div class="tooltip">
+                  <h4>Safety Score Explanation</h4>
+                  <p>Berechnet basierend auf der Kriminalitätsrate im Bezirk:</p>
+                  <ul>
+                    <li>Normalisiert auf einer Skala von 0-100</li>
+                    <li>Niedrigere Kriminalitätsrate = Höherer Score</li>
+                  </ul>
+                </div>
+              </li>
+              <li class="tooltip-container">💰 Cost of Living: <span id="qolCost1"></span>
+                <div class="tooltip">
+                  <h4>Cost of Living Score Explanation</h4>
+                  <p>Berechnet basierend auf den Mietpreisen im Bezirk:</p>
+                  <ul>
+                    <li>Normalisiert auf einer Skala von 0-100</li>
+                    <li>Niedrigere Mietpreise = Höherer Score</li>
+                  </ul>
+                </div>
+              </li>
             </ul>
-            <button onclick="downloadQoLPDF()" style="margin-top: 1em;">📄 Save Report as PDF</button>
 
-          </div>
-          <div id="weightSummary" style="margin-top: 10px;">
-            <ul id="weightList"></ul>
-          </div>
-          
-          
-          
+            <h3>Gewichtungen für Adresse1:</h3>
+            <div id="weightSummary1">
+              <ul id="weightList1"></ul>
+            </div>
+
+            <h2>📊 Quality of Life Report zu Adresse2:</h2>
+            <p><strong>Total Score:</strong> <span id="qolTotal2"></span>/100</p>
+            <ul>
+              <li class="tooltip-container">🏥 Health: <span id="qolHealth2"></span>
+                <div class="tooltip">
+                  <h4>Health Score Explanation</h4>
+                  <p>Berechnet basierend auf der Entfernung zum nächsten Krankenhaus:</p>
+                  <ul>
+                    <li>0-500m: 100 Punkte</li>
+                    <li>500-1000m: 85 Punkte</li>
+                    <li>1000-2000m: 70 Punkte</li>
+                    <li>2000-4000m: 50 Punkte</li>
+                    <li>4000-8000m: 30 Punkte</li>
+                    <li>>8000m: 10 Punkte</li>
+                  </ul>
+                </div>
+              </li>
+              <li class="tooltip-container">🚌 Transport: <span id="qolTransport2"></span>
+                <div class="tooltip">
+                  <h4>Transport Score Explanation</h4>
+                  <p>Berechnet basierend auf der Anzahl der Haltestellen innerhalb von 500m:</p>
+                  <ul>
+                    <li>Jede Haltestelle gibt 10 Punkte</li>
+                    <li>Maximum: 100 Punkte (10+ Haltestellen)</li>
+                  </ul>
+                </div>
+              </li>
+              <li class="tooltip-container">🏞️ Green Area: <span id="qolParks2"></span> (closest: <span id="closestPark2"></span>)
+                <div class="tooltip">
+                  <h4>Green Area Score Explanation</h4>
+                  <p>Berechnet basierend auf der Entfernung zum nächsten Park:</p>
+                  <ul>
+                    <li>0-100m: 100 Punkte</li>
+                    <li>100-300m: 80 Punkte</li>
+                    <li>300-500m: 60 Punkte</li>
+                    <li>500-1000m: 40 Punkte</li>
+                    <li>>1000m: 20 Punkte</li>
+                  </ul>
+                </div>
+              </li>
+              <li class="tooltip-container">🏫 Education: <span id="qolEducation2"></span>
+                <div class="tooltip">
+                  <h4>Education Score Explanation</h4>
+                  <p>Berechnet basierend auf der Entfernung zur nächsten Schule:</p>
+                  <ul>
+                    <li>0-100m: 100 Punkte</li>
+                    <li>100-300m: 80 Punkte</li>
+                    <li>300-500m: 60 Punkte</li>
+                    <li>500-1000m: 40 Punkte</li>
+                    <li>>1000m: 20 Punkte</li>
+                  </ul>
+                </div>
+              </li>
+              <li class="tooltip-container">🛡️ Safety: <span id="qolSafety2"></span>
+                <div class="tooltip">
+                  <h4>Safety Score Explanation</h4>
+                  <p>Berechnet basierend auf der Kriminalitätsrate im Bezirk:</p>
+                  <ul>
+                    <li>Normalisiert auf einer Skala von 0-100</li>
+                    <li>Niedrigere Kriminalitätsrate = Höherer Score</li>
+                  </ul>
+                </div>
+              </li>
+              <li class="tooltip-container">💰 Cost of Living: <span id="qolCost2"></span>
+                <div class="tooltip">
+                  <h4>Cost of Living Score Explanation</h4>
+                  <p>Berechnet basierend auf den Mietpreisen im Bezirk:</p>
+                  <ul>
+                    <li>Normalisiert auf einer Skala von 0-100</li>
+                    <li>Niedrigere Mietpreise = Höherer Score</li>
+                  </ul>
+                </div>
+              </li>
+            </ul>
+
+            <h3>Gewichtungen für Adresse2:</h3>
+            <div id="weightSummary2">
+              <ul id="weightList2"></ul>
+            </div>
+
+            <button onclick="downloadQoLPDF()" style="margin-top: 1em;">📄 Save Report as PDF</button>
+        </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="script.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBRFMKzpMSEyW_qFUv4KCmRBGSngzfOUX8&libraries=geometry&callback=initMap" async defer></script>
-
-    
-
 </body>
 </html>

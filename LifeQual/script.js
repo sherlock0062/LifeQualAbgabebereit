@@ -365,137 +365,231 @@ async function calculateQoL(address1, address2, situation1, situation2) {
         const qol1 = await computeQoL(data1, situation1);
         const qol2 = await computeQoL(data2, situation2);
 
-        document.getElementById('qol1').innerText = `Quality of Life für Adresse1: ${Math.round(qol1)}`;
-        document.getElementById('qol2').innerText = `Quality of Life für Adresse2: ${Math.round(qol2)}`;
+        // Update comparison elements
+        document.getElementById('qol1').textContent = `Quality of Life für Adresse1: ${qol1.totalScore}`;
+        document.getElementById('qol2').textContent = `Quality of Life für Adresse2: ${qol2.totalScore}`;
+        document.getElementById('qolDifference').textContent = `QoL-Differenz: ${Math.abs(qol1.totalScore - qol2.totalScore)}`;
 
-        const qolDifference = Math.abs(qol1 - qol2);
-        document.getElementById('qolDifference').innerText = `QoL-Differenz: ${Math.round(qolDifference)}`;
+        // Update Address 1 results
+        document.getElementById('qolTotal1').textContent = qol1.totalScore;
+        document.getElementById('qolHealth1').textContent = qol1.health;
+        document.getElementById('qolTransport1').textContent = qol1.transport;
+        document.getElementById('qolParks1').textContent = qol1.parks;
+        document.getElementById('closestPark1').textContent = qol1.closestPark;
+        document.getElementById('qolEducation1').textContent = qol1.education;
+        document.getElementById('qolSafety1').textContent = qol1.safety;
+        document.getElementById('qolCost1').textContent = qol1.costOfLiving;
 
+        // Update Address 2 results
+        document.getElementById('qolTotal2').textContent = qol2.totalScore;
+        document.getElementById('qolHealth2').textContent = qol2.health;
+        document.getElementById('qolTransport2').textContent = qol2.transport;
+        document.getElementById('qolParks2').textContent = qol2.parks;
+        document.getElementById('closestPark2').textContent = qol2.closestPark;
+        document.getElementById('qolEducation2').textContent = qol2.education;
+        document.getElementById('qolSafety2').textContent = qol2.safety;
+        document.getElementById('qolCost2').textContent = qol2.costOfLiving;
+
+        // Show the results container
+        document.getElementById('results').style.display = 'block';
         document.getElementById('result').style.display = 'block';
-        document.getElementById('nearestPark').innerHTML = `
-            Nächstgelegener Park zu Adresse1: ${data1.closestParkName}<br>
-            Nächstgelegener Park zu Adresse2: ${data2.closestParkName}
-        `;
+
+        // Update weightings for Address 1
+        const weightList1 = document.getElementById('weightList1');
+        weightList1.innerHTML = '';
+        
+        const weights1 = {
+            'Health': qol1.weights.health,
+            'Transport': qol1.weights.transport,
+            'Green Area': qol1.weights.parks,
+            'Education': qol1.weights.education,
+            'Safety': qol1.weights.safety,
+            'Cost of Living': qol1.weights.costOfLiving
+        };
+
+        for (const [category, weight] of Object.entries(weights1)) {
+            const li = document.createElement('li');
+            li.textContent = `${category}: ${weight}%`;
+            weightList1.appendChild(li);
+        }
+
+        // Update weightings for Address 2
+        const weightList2 = document.getElementById('weightList2');
+        weightList2.innerHTML = '';
+        
+        const weights2 = {
+            'Health': qol2.weights.health,
+            'Transport': qol2.weights.transport,
+            'Green Area': qol2.weights.parks,
+            'Education': qol2.weights.education,
+            'Safety': qol2.weights.safety,
+            'Cost of Living': qol2.weights.costOfLiving
+        };
+
+        for (const [category, weight] of Object.entries(weights2)) {
+            const li = document.createElement('li');
+            li.textContent = `${category}: ${weight}%`;
+            weightList2.appendChild(li);
+        }
 
     } catch (error) {
-        alert("Error calculating QoL: " + error);
-        console.error(error);
+        console.error("Error calculating QoL:", error);
     }
 }
 
 async function computeQoL(data, situation) {
     const weights = {
-        student:     { transport: 0.25, park: 0.10, health: 0.10, safety: 0.10, education: 0.30, cost: 0.15 }, 
-        // Studenten brauchen Transportation und natürlich Bildung mehr als vieles andere. Sie haben auch den Zweithöchsten costOfLiving Wert.
-        parent:      { transport: 0.15, park: 0.15, health: 0.20, safety: 0.20, education: 0.25, cost: 0.05 },
-        // Parents wollen eigentlich alles. Safety für ihre Familie, Education für die Kinder, Parks für die Familie, gegebenenfalls auch public transport, damit nicht zwei Autos gekauft werden müssen
-        senior:      { transport: 0.10, park: 0.20, health: 0.30, safety: 0.30, education: 0.05, cost: 0.05 },
-        //Pensionisten werden nicht mehr zur Schule gehen. Ihre Fokus liegt auf Gesundheit. 
-        unemployed:  { transport: 0.25, park: 0.05, health: 0.15, safety: 0.10, education: 0.10, cost: 0.35 },
-        // Bei Arbeitslosen ist eventuell auch das Fahrzeug in Gefahr. Cost of Living und Transport werden sehr wichtig. Parks sind vernachlässigbar.
-        default:     { transport: 0.15, park: 0.15, health: 0.20, safety: 0.20, education: 0.15, cost: 0.15 }
-        // Default case, für zukünfitge Erweiterungen als baseline.
+        student:     { transport: 0.25, parks: 0.10, health: 0.10, safety: 0.10, education: 0.30, costOfLiving: 0.15 }, 
+        parent:      { transport: 0.15, parks: 0.15, health: 0.20, safety: 0.20, education: 0.25, costOfLiving: 0.05 },
+        senior:      { transport: 0.10, parks: 0.20, health: 0.30, safety: 0.30, education: 0.05, costOfLiving: 0.05 },
+        unemployed:  { transport: 0.25, parks: 0.05, health: 0.15, safety: 0.10, education: 0.10, costOfLiving: 0.35 },
+        default:     { transport: 0.15, parks: 0.15, health: 0.20, safety: 0.20, education: 0.15, costOfLiving: 0.15 }
     };
 
     const w = weights[situation] || weights.default;
-    window.qolWeights = w;
 
     const totalScore = Math.round(
         data.transportScore * w.transport +
-        data.parkScore * w.park +
+        data.parkScore * w.parks +
         data.healthScore * w.health +
         data.safetyScore * w.safety +
         data.educationScore * w.education +
-        data.costOfLivingScore * w.cost
+        data.costOfLivingScore * w.costOfLiving
     );
 
-    renderQoLBreakdown(data, totalScore);
-    return totalScore;
+    return {
+        totalScore,
+        health: data.healthScore,
+        transport: data.transportScore,
+        parks: data.parkScore,
+        closestPark: data.closestParkName,
+        education: data.educationScore,
+        safety: data.safetyScore,
+        costOfLiving: data.costOfLivingScore,
+        weights: {
+            health: Math.round(w.health * 100),
+            transport: Math.round(w.transport * 100),
+            parks: Math.round(w.parks * 100),
+            education: Math.round(w.education * 100),
+            safety: Math.round(w.safety * 100),
+            costOfLiving: Math.round(w.costOfLiving * 100)
+        }
+    };
 }
-
-function renderQoLBreakdown(data, totalScore) {
-    document.getElementById("qolTotal").textContent = totalScore;
-    document.getElementById("qolHealth").textContent = data.healthScore;
-    document.getElementById("qolTransport").textContent = data.transportScore;
-    document.getElementById("qolParks").textContent = data.parkScore;
-    document.getElementById("qolEducation").textContent = data.educationScore;
-    document.getElementById("qolSafety").textContent = data.safetyScore;
-    document.getElementById("qolCost").textContent = data.costOfLivingScore;
-    document.getElementById("closestPark").textContent = data.closestParkName || "N/A";
-    document.getElementById("results").style.display = "block";
-
-    const weightSummary = document.getElementById("weightSummary");
-    const list = document.getElementById("weightList");
-    list.innerHTML = "";
-    
-//Das war notwendig, weil sich der Titel immer doppelt generiert hat
-const existingHeading = weightSummary.querySelector("strong");
-if (existingHeading) existingHeading.remove();
-
-const heading = document.createElement("strong");
-heading.textContent = "Gewichtungen:";
-weightSummary.prepend(heading);
-
-    
-    // Populate weights
-    const w = window.qolWeights || {};
-    for (const [category, weight] of Object.entries(w)) {
-        const li = document.createElement("li");
-        li.textContent = `${capitalize(category)}: ${Math.round(weight * 100)}%`;
-        list.appendChild(li);
-    }
-    weightSummary.style.display = "block";
-    
-}
-
-function capitalize(word) {
-    return word.charAt(0).toUpperCase() + word.slice(1);
-}
-
 
 async function downloadQoLPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-
-    const total = document.getElementById("qolTotal").textContent;
-    const health = document.getElementById("qolHealth").textContent;
-    const transport = document.getElementById("qolTransport").textContent;
-    const parks = document.getElementById("qolParks").textContent;
-    const education = document.getElementById("qolEducation").textContent;
-    const safety = document.getElementById("qolSafety").textContent;
-    const cost = document.getElementById("qolCost").textContent;
-    const parkName = document.getElementById("closestPark").textContent;
-
-    const lines = [
-        "Quality of Life Report",
-        "==========================",
-        `Total Score: ${total}/100`,
-        "",
-        `Health: ${health}`,
-        `Transport: ${transport}`,
-        `Green Area: ${parks}`,
-        `Closest park: ${parkName}`,
-        `Education: ${education}`,
-        `Safety: ${safety}`,
-        `Cost of Living: ${cost}`
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 20;
+    const contentWidth = pageWidth - (2 * margin);
+    
+    // Title
+    doc.setFontSize(20);
+    doc.text('Quality of Life Report', pageWidth/2, 20, { align: 'center' });
+    
+    // Address 1 Report
+    doc.setFontSize(16);
+    doc.text('Quality of Life Report zu Adresse1:', margin, 40);
+    doc.setFontSize(12);
+    
+    const address1Data = [
+        `Total Score: ${document.getElementById('qolTotal1').textContent}/100`,
+        `Health: ${document.getElementById('qolHealth1').textContent}`,
+        `Transport: ${document.getElementById('qolTransport1').textContent}`,
+        `Green Area: ${document.getElementById('qolParks1').textContent} (closest: ${document.getElementById('closestPark1').textContent})`,
+        `Education: ${document.getElementById('qolEducation1').textContent}`,
+        `Safety: ${document.getElementById('qolSafety1').textContent}`,
+        `Cost of Living: ${document.getElementById('qolCost1').textContent}`
     ];
     
-
-    lines.forEach((line, i) => {
-        doc.text(line, 10, 20 + i * 10);
+    let y = 50;
+    address1Data.forEach(line => {
+        if (y > 250) { // Check if we need a new page
+            doc.addPage();
+            y = 20;
+        }
+        doc.text(line, margin, y);
+        y += 10;
     });
 
-    const w = window.qolWeights || {};
-doc.text("Gewichtungen:", 10, 130);
-let y = 140;
-Object.entries(w).forEach(([key, val]) => {
-    const label = key.charAt(0).toUpperCase() + key.slice(1);
-    doc.text(`${label}: ${Math.round(val * 100)}%`, 10, y);
-    y += 10;
-});
+    // Address 1 Weightings
+    if (y > 230) { // Check if we need a new page for weightings
+        doc.addPage();
+        y = 20;
+    }
+    doc.setFontSize(14);
+    doc.text('Gewichtungen für Adresse1:', margin, y + 10);
+    doc.setFontSize(12);
+    y += 20;
+    
+    const weightItems1 = document.getElementById('weightList1').getElementsByTagName('li');
+    for (let item of weightItems1) {
+        if (y > 250) {
+            doc.addPage();
+            y = 20;
+        }
+        doc.text(item.textContent, margin, y);
+        y += 10;
+    }
+    
+    // Add a page break before Address 2
+    doc.addPage();
+    
+    // Address 2 Report
+    doc.setFontSize(16);
+    doc.text('Quality of Life Report zu Adresse2:', margin, 20);
+    doc.setFontSize(12);
+    y = 30;
+    
+    const address2Data = [
+        `Total Score: ${document.getElementById('qolTotal2').textContent}/100`,
+        `Health: ${document.getElementById('qolHealth2').textContent}`,
+        `Transport: ${document.getElementById('qolTransport2').textContent}`,
+        `Green Area: ${document.getElementById('qolParks2').textContent} (closest: ${document.getElementById('closestPark2').textContent})`,
+        `Education: ${document.getElementById('qolEducation2').textContent}`,
+        `Safety: ${document.getElementById('qolSafety2').textContent}`,
+        `Cost of Living: ${document.getElementById('qolCost2').textContent}`
+    ];
+    
+    address2Data.forEach(line => {
+        if (y > 250) {
+            doc.addPage();
+            y = 20;
+        }
+        doc.text(line, margin, y);
+        y += 10;
+    });
 
-
-    doc.save("quality-of-life-report.pdf");
+    // Address 2 Weightings
+    if (y > 230) {
+        doc.addPage();
+        y = 20;
+    }
+    doc.setFontSize(14);
+    doc.text('Gewichtungen für Adresse2:', margin, y + 10);
+    doc.setFontSize(12);
+    y += 20;
+    
+    const weightItems2 = document.getElementById('weightList2').getElementsByTagName('li');
+    for (let item of weightItems2) {
+        if (y > 250) {
+            doc.addPage();
+            y = 20;
+        }
+        doc.text(item.textContent, margin, y);
+        y += 10;
+    }
+    
+    // Add page numbers
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(10);
+        doc.text(`Page ${i} of ${pageCount}`, pageWidth - margin, doc.internal.pageSize.height - 10);
+    }
+    
+    doc.save('quality-of-life-report.pdf');
 }
 
 function calculateDistances(address1, address2) {

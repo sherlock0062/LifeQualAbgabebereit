@@ -55,3 +55,63 @@ button:hover {
     font-size: 1.2em;
     color: #333;
 }
+
+.tooltip-container {
+    position: relative;
+    cursor: help;
+}
+
+.tooltip {
+    visibility: hidden;
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #333;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    width: 300px;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.tooltip h4 {
+    margin: 0 0 10px 0;
+    color: #fff;
+    font-size: 16px;
+}
+
+.tooltip p {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+}
+
+.tooltip ul {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 14px;
+}
+
+.tooltip li {
+    margin: 5px 0;
+}
+
+.tooltip-container:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Add a small arrow to the tooltip */
+.tooltip::before {
+    content: "";
+    position: absolute;
+    left: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-width: 10px;
+    border-style: solid;
+    border-color: transparent #333 transparent transparent;
+}

@@ -55,10 +55,10 @@ async function getGreenAreaScore(latLng) {
         const lat = latLng.lat();
         const lng = latLng.lng();
         
-        console.log('Searching for parks near:', { lat, lng });
+        //console.log('Searching for parks near:', { lat, lng });
         const response = await fetch(`http://localhost:3000/api/parks?lat=${lat}&lng=${lng}&radius=2000`);
         const parks = await response.json();
-        console.log('Found parks:', parks);
+        //console.log('Found parks:', parks);
         
         let closestDistance = Infinity;
         let closestParkName = "Kein Park in der Nähe gefunden";
@@ -72,7 +72,7 @@ async function getGreenAreaScore(latLng) {
                     const lat = parseFloat(coordsMatch[2]);
                     const parkLatLng = new google.maps.LatLng(lat, lon);
                     const dist = google.maps.geometry.spherical.computeDistanceBetween(latLng, parkLatLng);
-                    console.log(`Park ${park.name} is ${dist.toFixed(2)}m away`);
+                    //console.log(`Park ${park.name} is ${dist.toFixed(2)}m away`);
                     if (dist < closestDistance) {
                         closestDistance = dist;
                         closestParkName = park.name || "Unbenannter Park";
@@ -99,11 +99,57 @@ async function getGreenAreaScore(latLng) {
 
 async function getTransportScore(latLng) {
     try {
-        const response = await fetch(`http://localhost:3000/api/transport-stops?lat=${latLng.lat}&lng=${latLng.lng}&radius=500`);
+        const lat = typeof latLng.lat === 'function' ? latLng.lat() : latLng.lat;
+        const lng = typeof latLng.lng === 'function' ? latLng.lng() : latLng.lng;
+
+        console.log('Searching for stops near:', { lat, lng });
+
+        const RADIUS_METERS = 500;
+
+        const response = await fetch(
+            `http://localhost:3000/api/transport-stops?lat=${lat}&lng=${lng}&radius=${RADIUS_METERS}`
+        );
+
+        if (!response.ok) {
+            throw new Error(`API request failed with status ${response.status}`);
+        }
+
         const stops = await response.json();
-        return Math.min(stops.length * 10, 100);
+        console.log('Found stops:', stops);
+
+        let nearbyCount = 0;
+
+        stops.forEach(stop => {
+            const coords = stop.coordinates;
+
+            if (!coords || typeof coords.x !== 'number' || typeof coords.y !== 'number') {
+                console.warn('Invalid coordinates for stop:', stop);
+                return;
+            }
+
+            const stopLat = coords.y; // y = Breitengrad (lat)
+            const stopLng = coords.x; // x = Längengrad (lng)
+
+            const stopLatLng = new google.maps.LatLng(stopLat, stopLng);
+            const originLatLng = new google.maps.LatLng(lat, lng);
+
+            const distance = google.maps.geometry.spherical.computeDistanceBetween(
+                originLatLng,
+                stopLatLng
+            );
+
+            console.log(`Stop ${stop.properties?.BEZEICHNUNG || 'unnamed'} is ${distance.toFixed(2)}m away`);
+
+            if (distance <= RADIUS_METERS) {
+                nearbyCount++;
+            }
+        });
+
+        const score = Math.min(nearbyCount * 10, 100);
+        console.log(`Transport score: ${score} (${nearbyCount} stops within ${RADIUS_METERS}m)`);
+        return score;
     } catch (error) {
-        console.log("Failed to calculate transport score:", error);
+        console.error("Failed to calculate transport score:", error);
         return 50;
     }
 }

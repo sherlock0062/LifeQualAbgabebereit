@@ -1,3 +1,18 @@
+# How to get this webseit running on your own computer
+# Docker Desktop must be running!
+docker-compose up -d
+# other coammands:
+node api/server.js
+# install
+Live Server
+# extension in VS Code
+on the bottom right corner of VS Code click on "Go Live" this is needed becouse the google maps api needs it to work properly 
+# Webseit schould be working now!
+
+-----------------------------
+
+If the webseit dose not work properly, try follow these steps:
+
 Make sure docker desktop runs before inputting any commands!
 
 # Onetime:

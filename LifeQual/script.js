@@ -17,8 +17,13 @@ document.getElementById('qlForm').addEventListener('submit', async function(e) {
     const situation1 = document.getElementById('situation1').value;
     const situation2 = document.getElementById('situation2').value;
 
-    await calculateQoL(address1, address2, situation1, situation2);
-    calculateDistances(address1, address2);
+    try {
+        await calculateQoL(address1, address2, situation1, situation2);
+        await calculateDistances(address1, address2);
+    } catch (error) {
+        alert(error);
+        console.error("Error:", error);
+    }
 });
 
 function initMap() {
@@ -38,12 +43,62 @@ function initMap() {
 async function geocodeAddress(address) {
     return new Promise((resolve, reject) => {
         const geocoder = new google.maps.Geocoder();
-        geocoder.geocode({ address: address }, (results, status) => {
-            if (status === "OK") {
-                resolve(results[0].geometry.location);
-                console.log("It worked!");
+        
+        // Format the address specifically for Vienna
+        const formattedAddress = `${address}, Wien, Österreich`;
+        console.log("Searching for address:", formattedAddress);
+
+        geocoder.geocode({ 
+            address: formattedAddress,
+            region: 'at',
+            language: 'de'
+        }, (results, status) => {
+            console.log("Geocoding status:", status);
+            console.log("Geocoding results:", results);
+
+            if (status === "OK" && results.length > 0) {
+                const result = results[0];
+                console.log("Full address result:", result.formatted_address);
+                console.log("Address components:", result.address_components);
+
+                // Check if the address is in Vienna
+                const addressComponents = result.address_components;
+                let isInVienna = false;
+                let postalCode = '';
+
+                for (const component of addressComponents) {
+                    console.log("Checking component:", component);
+                    // Check for Vienna in administrative_area_level_1
+                    if (component.types.includes("administrative_area_level_1") && 
+                        (component.long_name === "Vienna" || component.long_name === "Wien")) {
+                        isInVienna = true;
+                        console.log("Found Vienna in component");
+                    }
+                    // Get postal code
+                    if (component.types.includes("postal_code")) {
+                        postalCode = component.long_name;
+                        console.log("Found postal code:", postalCode);
+                    }
+                }
+
+                if (!isInVienna) {
+                    console.log("Address is not in Vienna");
+                    reject("Die Adresse muss in Wien liegen.");
+                    return;
+                }
+
+                // Validate postal code format (Vienna postal codes start with 1)
+                if (!postalCode.startsWith('1')) {
+                    console.log("Invalid postal code:", postalCode);
+                    reject("Die Adresse muss eine gültige Wiener Postleitzahl haben (beginnend mit 1).");
+                    return;
+                }
+
+                console.log("Valid Vienna address found!");
+                resolve(result.geometry.location);
             } else {
-                reject("Geocoding failed: " + status);
+                console.log("Geocoding failed with status:", status);
+                reject("Adresse konnte nicht gefunden werden. Bitte überprüfen Sie die Eingabe.");
             }
         });
     });
@@ -337,11 +392,11 @@ async function getCityData(address) {
     const district = await getDistrictFromLatLng(gLatLng);
 
     const [transportScore, parkData, healthScore, safetyScore, educationScore, costOfLivingScore] = await Promise.all([
-        getTransportScore(latLng),      
+        getTransportScore(gLatLng),      
         getGreenAreaScore(gLatLng),      
         getHealthScore(gLatLng),
         getSafetyScoreFromDistrict(district),
-        getEducationScore(latLng),
+        getEducationScore(gLatLng),
         getCostOfLivingScore(district)
     ]);
 
@@ -592,42 +647,37 @@ async function downloadQoLPDF() {
     doc.save('quality-of-life-report.pdf');
 }
 
-function calculateDistances(address1, address2) {
-    const geocoder = new google.maps.Geocoder();
+async function calculateDistances(address1, address2) {
+    try {
+        // Get the geocoded locations
+        const latLng1 = await geocodeAddress(address1);
+        const latLng2 = await geocodeAddress(address2);
 
-    geocoder.geocode({ address: address1 }, (results1, status1) => {
-        if (status1 === "OK") {
-            geocoder.geocode({ address: address2 }, (results2, status2) => {
-                if (status2 === "OK") {
-                    const latLng1 = results1[0].geometry.location;
-                    const latLng2 = results2[0].geometry.location;
+        // Calculate linear distance
+        const linearDistance = google.maps.geometry.spherical.computeDistanceBetween(latLng1, latLng2);
+        document.getElementById('linearDistance').innerText = `Linear Distance: ${Math.round(linearDistance / 1000)} km`;
 
-                    const linearDistance = google.maps.geometry.spherical.computeDistanceBetween(latLng1, latLng2);
-                    document.getElementById('linearDistance').innerText = `Linear Distance: ${Math.round(linearDistance / 1000)} km`;
+        // Calculate route distance
+        const request = {
+            origin: latLng1,
+            destination: latLng2,
+            travelMode: google.maps.TravelMode.DRIVING
+        };
 
-                    const request = {
-                        origin: address1,
-                        destination: address2,
-                        travelMode: google.maps.TravelMode.DRIVING
-                    };
-
-                    directionsService.route(request, (result, status) => {
-                        if (status === "OK") {
-                            const routeDistance = result.routes[0].legs[0].distance.value;
-                            document.getElementById('routeDistance').innerText = `Route Distance: ${Math.round(routeDistance / 1000)} km`;
-                            directionsRenderer.setDirections(result);
-                        } else {
-                            alert("Directions request failed due to " + status);
-                        }
-                    });
-                } else {
-                    alert("Geocode failed for Address 2: " + status2);
-                }
-            });
-        } else {
-            alert("Geocode failed for Address 1: " + status1);
-        }
-    });
+        directionsService.route(request, (result, status) => {
+            if (status === "OK") {
+                const routeDistance = result.routes[0].legs[0].distance.value;
+                document.getElementById('routeDistance').innerText = `Route Distance: ${Math.round(routeDistance / 1000)} km`;
+                directionsRenderer.setDirections(result);
+            } else {
+                console.error("Directions request failed:", status);
+                alert("Routenberechnung fehlgeschlagen: " + status);
+            }
+        });
+    } catch (error) {
+        console.error("Error calculating distances:", error);
+        alert(error);
+    }
 }
 
 

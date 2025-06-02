@@ -12,7 +12,8 @@
         <form id="qlForm">
             <!-- Address 1 -->
             <label for="address1">Addresse 1:</label>
-            <input type="text" id="address1" name="address1" required><br><br>
+            <input type="text" id="address1" name="address1" required>
+            <span id="address1Error" class="error-message" style="display: none; color: red; margin-left: 10px;"></span><br><br>
 
             <label for="situation1">Lebensstatus Adresse 1:</label>
             <select id="situation1" name="situation1">
@@ -24,7 +25,8 @@
 
             <!-- Address 2 -->
             <label for="address2">Addresse 2:</label>
-            <input type="text" id="address2" name="address2" required><br><br>
+            <input type="text" id="address2" name="address2" required>
+            <span id="address2Error" class="error-message" style="display: none; color: red; margin-left: 10px;"></span><br><br>
 
             <label for="situation2">Lebensstatus Adresse 2:</label>
             <select id="situation2" name="situation2">
@@ -36,6 +38,8 @@
 
             <button type="submit">Calculate QoL</button>
         </form>
+
+        <div id="errorMessage" class="error-message" style="display: none; color: red; margin: 10px 0; padding: 10px; border: 1px solid red; border-radius: 4px;"></div>
 
         <div id="result">
             <h3>Quality of Life Comparison:</h3>

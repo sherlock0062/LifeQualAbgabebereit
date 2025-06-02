@@ -18,10 +18,29 @@ document.getElementById('qlForm').addEventListener('submit', async function(e) {
     const situation2 = document.getElementById('situation2').value;
 
     try {
+        // Clear previous results and error messages
+        clearResults();
+        clearErrors();
+        
+        // Validate addresses one at a time
+        try {
+            await geocodeAddress(address1);
+        } catch (error) {
+            showAddressError('address1', error);
+            return;
+        }
+
+        try {
+            await geocodeAddress(address2);
+        } catch (error) {
+            showAddressError('address2', error);
+            return;
+        }
+
+        // If both addresses are valid, proceed with calculations
         await calculateQoL(address1, address2, situation1, situation2);
         await calculateDistances(address1, address2);
     } catch (error) {
-        alert(error);
         console.error("Error:", error);
     }
 });
@@ -37,6 +56,68 @@ function initMap() {
         directionsRenderer.setMap(map);
     } catch (e) {
         console.error("Error in initMap():", e);
+    }
+}
+
+function showError(message) {
+    const errorDiv = document.getElementById('errorMessage');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+}
+
+function showAddressError(addressId, message) {
+    const errorSpan = document.getElementById(`${addressId}Error`);
+    errorSpan.textContent = message;
+    errorSpan.style.display = 'inline';
+}
+
+function clearErrors() {
+    document.getElementById('address1Error').style.display = 'none';
+    document.getElementById('address2Error').style.display = 'none';
+    document.getElementById('errorMessage').style.display = 'none';
+}
+
+function clearResults() {
+    // Clear error messages
+    clearErrors();
+    
+    // Clear results
+    document.getElementById('result').style.display = 'none';
+    document.getElementById('results').style.display = 'none';
+    
+    // Clear all result fields
+    document.getElementById('qol1').textContent = '';
+    document.getElementById('qol2').textContent = '';
+    document.getElementById('qolDifference').textContent = '';
+    document.getElementById('linearDistance').textContent = '';
+    document.getElementById('routeDistance').textContent = '';
+    
+    // Clear detailed results
+    document.getElementById('qolTotal1').textContent = '';
+    document.getElementById('qolHealth1').textContent = '';
+    document.getElementById('qolTransport1').textContent = '';
+    document.getElementById('qolParks1').textContent = '';
+    document.getElementById('closestPark1').textContent = '';
+    document.getElementById('qolEducation1').textContent = '';
+    document.getElementById('qolSafety1').textContent = '';
+    document.getElementById('qolCost1').textContent = '';
+    
+    document.getElementById('qolTotal2').textContent = '';
+    document.getElementById('qolHealth2').textContent = '';
+    document.getElementById('qolTransport2').textContent = '';
+    document.getElementById('qolParks2').textContent = '';
+    document.getElementById('closestPark2').textContent = '';
+    document.getElementById('qolEducation2').textContent = '';
+    document.getElementById('qolSafety2').textContent = '';
+    document.getElementById('qolCost2').textContent = '';
+    
+    // Clear weight lists
+    document.getElementById('weightList1').innerHTML = '';
+    document.getElementById('weightList2').innerHTML = '';
+    
+    // Clear map
+    if (directionsRenderer) {
+        directionsRenderer.setDirections({ routes: [] });
     }
 }
 

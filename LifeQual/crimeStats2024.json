@@ -1,0 +1,94 @@
+[
+  {
+    "district": "Favoriten",
+    "crimes": 26218
+  },
+  {
+    "district": "Floridsdorf",
+    "crimes": 15114
+  },
+  {
+    "district": "Donaustadt",
+    "crimes": 14979
+  },
+  {
+    "district": "Leopoldstadt",
+    "crimes": 13715
+  },
+  {
+    "district": "Innere Stadt",
+    "crimes": 10284
+  },
+  {
+    "district": "Landstraße",
+    "crimes": 10185
+  },
+  {
+    "district": "Meidling",
+    "crimes": 10044
+  },
+  {
+    "district": "Ottakring",
+    "crimes": 9958
+  },
+  {
+    "district": "Rudolfsheim-Fünfhaus",
+    "crimes": 8913
+  },
+  {
+    "district": "Simmering",
+    "crimes": 8518
+  },
+  {
+    "district": "Liesing",
+    "crimes": 8273
+  },
+  {
+    "district": "Brigittenau",
+    "crimes": 8228
+  },
+  {
+    "district": "Penzing",
+    "crimes": 5930
+  },
+  {
+    "district": "Alsergrund",
+    "crimes": 5927
+  },
+  {
+    "district": "Döbling",
+    "crimes": 5603
+  },
+  {
+    "district": "Margareten",
+    "crimes": 5278
+  },
+  {
+    "district": "Mariahilf",
+    "crimes": 5053
+  },
+  {
+    "district": "Neubau",
+    "crimes": 4875
+  },
+  {
+    "district": "Hernals",
+    "crimes": 4321
+  },
+  {
+    "district": "Wieden",
+    "crimes": 3951
+  },
+  {
+    "district": "Hietzing",
+    "crimes": 3402
+  },
+  {
+    "district": "Währing",
+    "crimes": 3154
+  },
+  {
+    "district": "Josefstadt",
+    "crimes": 3058
+  }
+]

@@ -9,9 +9,10 @@ Live Server
 on the bottom right corner of VS Code click on "Go Live" this is needed becouse the google maps api needs it to work properly 
 # Webseit schould be working now!
 
+Those are the steps when the Database is already populated with data.
 -----------------------------
 
-If the webseit dose not work properly, try follow these steps:
+If the webseit does not work properly or you want to start from scratch, and the database is not populatetd, follow these steps:
 
 Make sure docker desktop runs before inputting any commands!
 
@@ -62,4 +63,5 @@ in the terminal: npm start
 to start up our server.
 
 and then
-double click on the home.html to test out the website!
+Make sure that the Live Server extension is installed in VS Code and running.
+Then double click on the home.html to test out the website!
